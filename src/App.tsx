@@ -1,44 +1,29 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
+import {NavigationContainer} from '@react-navigation/native';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  useColorScheme,
-  View,
-  Platform,
-} from 'react-native';
-import {getColorAndBackground, styles} from './styles';
-import {Section, AlbumList} from './components';
+import {AlbumScreen, HomeScreen, StackParamList} from './views';
 
-function App(): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  const colorAndBackground = getColorAndBackground(isDarkMode);
+const Stack = createNativeStackNavigator<StackParamList>();
 
+const App = () => {
   return (
-    <SafeAreaView style={colorAndBackground}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={colorAndBackground.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={colorAndBackground}>
-        <View style={colorAndBackground}>
-          <Section title="Albums">Version: {Platform.Version}</Section>
-        </View>
-        <View style={[colorAndBackground, styles.sectionContainer]}>
-          <AlbumList />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{title: 'PhotoSync'}}
+        />
+        <Stack.Screen
+          name="Album"
+          component={AlbumScreen}
+          options={({route}) => ({
+            title: route.params.albumTitle,
+          })}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
-}
+};
 
 export default App;

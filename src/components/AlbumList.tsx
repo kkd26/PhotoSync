@@ -1,72 +1,54 @@
 import {Album, CameraRoll} from '@react-native-camera-roll/camera-roll';
-import React, {useEffect, useState} from 'react';
-import {PermissionsAndroid, Platform, Text, View} from 'react-native';
+import React, {PropsWithChildren, useEffect, useState} from 'react';
+import {Pressable, ScrollView, Text} from 'react-native';
+import {hasAndroidPermission} from '../utils';
+import {Section} from './Section';
 
-async function hasAndroidPermission() {
-  const getCheckPermissionPromise = () => {
-    if (Number(Platform.Version) >= 33) {
-      return Promise.all([
-        PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-        ),
-        PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
-        ),
-      ]).then(
-        ([hasReadMediaImagesPermission, hasReadMediaVideoPermission]) =>
-          hasReadMediaImagesPermission && hasReadMediaVideoPermission,
-      );
-    } else {
-      return PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-      );
-    }
+type AlbumViewProps = PropsWithChildren<{
+  onPress: () => void;
+}>;
+
+const AlbumView = ({children, onPress}: AlbumViewProps) => {
+  const style = {
+    padding: 2,
+    borderWidth: 1,
   };
 
-  const hasPermission = await getCheckPermissionPromise();
-  if (hasPermission) {
-    return true;
-  }
-  const getRequestPermissionPromise = () => {
-    if (Number(Platform.Version) >= 33) {
-      return PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-        PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
-      ]).then(
-        statuses =>
-          statuses[PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES] ===
-            PermissionsAndroid.RESULTS.GRANTED &&
-          statuses[PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO] ===
-            PermissionsAndroid.RESULTS.GRANTED,
-      );
-    } else {
-      return PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-      ).then(status => status === PermissionsAndroid.RESULTS.GRANTED);
-    }
-  };
+  return (
+    <Pressable style={style} onPress={onPress}>
+      {children}
+    </Pressable>
+  );
+};
 
-  return await getRequestPermissionPromise();
-}
+type AlbumListProps = {
+  handle: (albumTitle: string) => void;
+};
 
-export const AlbumList = () => {
+export const AlbumList = ({handle}: AlbumListProps) => {
   const [albums, setAlbums] = useState<Album[]>([]);
 
   useEffect(() => {
-    if (Platform.OS === 'android') {
-      hasAndroidPermission().then(permission => {
-        if (permission) {
-          CameraRoll.getAlbums().then(setAlbums);
-        }
-      });
-    }
+    hasAndroidPermission()
+      .then(() => {
+        CameraRoll.getAlbums().then(setAlbums);
+      })
+      .catch(err => console.log(err));
   }, []);
 
+  const textStyle = {
+    fontSize: 24,
+  };
+
   return (
-    <View>
-      {albums.map(({title, count}, id) => (
-        <Text key={id}>{`${title} ${count}`}</Text>
-      ))}
-    </View>
+    <Section title="Albums:">
+      <ScrollView contentInsetAdjustmentBehavior="automatic">
+        {albums.map(({title, count}, id) => (
+          <AlbumView key={id} onPress={() => handle(title)}>
+            <Text style={textStyle}>{`${title} ${count}`}</Text>
+          </AlbumView>
+        ))}
+      </ScrollView>
+    </Section>
   );
 };
