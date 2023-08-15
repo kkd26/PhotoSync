@@ -2,21 +2,12 @@ import {
   CameraRoll,
   PhotoIdentifier,
 } from '@react-native-camera-roll/camera-roll';
-import React, {PropsWithChildren, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {Pressable, ScrollView, Text} from 'react-native';
-import {hasAndroidPermission} from '../utils';
-import {Section} from './Section';
 import {hash as hashAlg} from 'react-native-fs';
-
-const HOST = 'http://192.168.1.110:8080/api/upload';
-
-type Photo = {
-  uri: string;
-  name: string;
-  type: string;
-  date: string;
-  hash: string;
-};
+import {hasAndroidPermission} from '../utils';
+import {Photo, arePhotosSync, submitPhoto} from '../utils/api';
+import {Section} from './Section';
 
 const transformToPhoto = async (raw: PhotoIdentifier): Promise<Photo> => {
   const uri = raw.node.image.uri;
@@ -28,41 +19,33 @@ const transformToPhoto = async (raw: PhotoIdentifier): Promise<Photo> => {
   return {uri, name, type, date, hash};
 };
 
-type PhotoViewProps = PropsWithChildren<{photoData: Photo; albumTitle: string}>;
+type PhotoViewProps = {
+  photo: Photo;
+  photosToSync: Set<string>;
+  albumTitle: string;
+  callback: () => void;
+};
 
-const PhotoView = ({children, photoData, albumTitle}: PhotoViewProps) => {
+const PhotoView = ({
+  photo,
+  albumTitle,
+  photosToSync,
+  callback,
+}: PhotoViewProps) => {
   const style = {marginBottom: 8};
 
-  const body = new FormData();
-  body.append('albumTitle', {
-    string: albumTitle,
-    type: 'plain/text',
-  });
-  body.append('hash', {
-    string: photoData.hash,
-    type: 'plain/text',
-  });
-  body.append('image', photoData);
+  const notSync = photosToSync.has(photo.hash);
+  const color = notSync ? 'red' : 'green';
+  const textStyle = {color};
 
-  const submitPhoto = () => {
-    fetch(HOST, {
-      method: 'post',
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      body,
-    })
-      .then(response => {
-        console.log(response);
-      })
-      .catch(err => {
-        console.log(err);
-      });
+  const onPress = () => {
+    submitPhoto(albumTitle, photo).then(callback);
   };
 
   return (
-    <Pressable style={style} onPress={submitPhoto}>
-      {children}
+    <Pressable style={style} onPress={onPress}>
+      <Text style={textStyle}>{photo.name}</Text>
+      <Text style={textStyle}>{photo.date}</Text>
     </Pressable>
   );
 };
@@ -73,6 +56,13 @@ type PhotoListProps = {
 
 export const PhotoList = ({albumTitle}: PhotoListProps) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photosToSync, setPhotosToSync] = useState<Set<string>>(new Set());
+
+  const checkSyncPhotos = useCallback(() => {
+    arePhotosSync(albumTitle, photos).then(hashes =>
+      setPhotosToSync(new Set(hashes)),
+    );
+  }, [albumTitle, photos]);
 
   useEffect(() => {
     hasAndroidPermission()
@@ -88,14 +78,23 @@ export const PhotoList = ({albumTitle}: PhotoListProps) => {
       .catch(err => console.log(err));
   }, [albumTitle]);
 
+  useEffect(() => {
+    if (photos.length > 0) {
+      checkSyncPhotos();
+    }
+  }, [checkSyncPhotos, photos.length]);
+
   return (
     <Section title={`Photos in ${albumTitle}:`}>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        {photos.map((photoData, id) => (
-          <PhotoView key={id} photoData={photoData} albumTitle={albumTitle}>
-            <Text>{photoData.name}</Text>
-            <Text>{photoData.date}</Text>
-          </PhotoView>
+        {photos.map(photo => (
+          <PhotoView
+            key={photo.hash}
+            photo={photo}
+            albumTitle={albumTitle}
+            photosToSync={photosToSync}
+            callback={checkSyncPhotos}
+          />
         ))}
       </ScrollView>
     </Section>
