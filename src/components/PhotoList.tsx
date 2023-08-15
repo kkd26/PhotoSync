@@ -6,6 +6,7 @@ import React, {PropsWithChildren, useEffect, useState} from 'react';
 import {Pressable, ScrollView, Text} from 'react-native';
 import {hasAndroidPermission} from '../utils';
 import {Section} from './Section';
+import {hash as hashAlg} from 'react-native-fs';
 
 const HOST = 'http://192.168.1.110:8080/api/upload';
 
@@ -14,15 +15,17 @@ type Photo = {
   name: string;
   type: string;
   date: string;
+  hash: string;
 };
 
-const transformToPhoto = (raw: PhotoIdentifier): Photo => {
+const transformToPhoto = async (raw: PhotoIdentifier): Promise<Photo> => {
   const uri = raw.node.image.uri;
   const nameFromUri = uri.split('/').at(-1) || 'no uri';
   const name = raw.node.image.filename || nameFromUri;
   const type = raw.node.type;
   const date = new Date(raw.node.timestamp * 1000).toISOString();
-  return {uri, name, type, date};
+  const hash = await hashAlg(uri, 'sha256');
+  return {uri, name, type, date, hash};
 };
 
 type PhotoViewProps = PropsWithChildren<{photoData: Photo; albumTitle: string}>;
@@ -33,6 +36,10 @@ const PhotoView = ({children, photoData, albumTitle}: PhotoViewProps) => {
   const body = new FormData();
   body.append('albumTitle', {
     string: albumTitle,
+    type: 'plain/text',
+  });
+  body.append('hash', {
+    string: photoData.hash,
     type: 'plain/text',
   });
   body.append('image', photoData);
@@ -76,7 +83,7 @@ export const PhotoList = ({albumTitle}: PhotoListProps) => {
           assetType: 'All',
         })
           .then(({edges}) => edges.map(transformToPhoto))
-          .then(setPhotos);
+          .then(promises => Promise.all(promises).then(setPhotos));
       })
       .catch(err => console.log(err));
   }, [albumTitle]);
