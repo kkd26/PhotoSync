@@ -15,10 +15,10 @@ export function Section({children, title}: SectionProps): JSX.Element {
       <Text style={[styles.sectionTitle, getColorAndBackground(isDarkMode)]}>
         {title}
       </Text>
-      <Text
+      <View
         style={[styles.sectionDescription, getColorAndBackground(isDarkMode)]}>
         {children}
-      </Text>
+      </View>
     </View>
   );
 }

@@ -1,7 +1,22 @@
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import React from 'react';
-import {AlbumScreen, HomeScreen, StackParamList} from './views';
+import {Button} from 'react-native';
+import {
+  AlbumScreen,
+  HomeScreen,
+  SettingsScreen,
+  StackParamList,
+} from './screens';
+
+const SettingsButton = (navigation: any) => {
+  return (
+    <Button
+      onPress={() => navigation.navigate('Settings')}
+      title="Settings"
+      color="black"
+    />
+  );
+};
 
 const Stack = createNativeStackNavigator<StackParamList>();
 
@@ -12,7 +27,10 @@ const App = () => {
         <Stack.Screen
           name="Home"
           component={HomeScreen}
-          options={{title: 'PhotoSync'}}
+          options={({navigation}) => ({
+            title: 'PhotoSync',
+            headerRight: () => SettingsButton(navigation),
+          })}
         />
         <Stack.Screen
           name="Album"
@@ -20,6 +38,11 @@ const App = () => {
           options={({route}) => ({
             title: route.params.albumTitle,
           })}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{title: 'Settings'}}
         />
       </Stack.Navigator>
     </NavigationContainer>

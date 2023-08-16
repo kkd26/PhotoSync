@@ -1,8 +1,8 @@
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React from 'react';
 import {StackParamList} from '.';
-import {BaseScreen} from './BaseScreen';
 import {PhotoList} from '../components';
+import {BaseScreen} from './BaseScreen';
 
 type AlbumScreenProps = NativeStackScreenProps<StackParamList, 'Album'>;
 
