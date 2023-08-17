@@ -1,3 +1,5 @@
+import {getServerAddress} from './storage';
+
 export type Photo = {
   uri: string;
   name: string;
@@ -6,9 +8,41 @@ export type Photo = {
   hash: string;
 };
 
-const HOST = 'http://192.168.1.110:8080/api';
+export const serverStatus = async (host: string) => {
+  const timeoutDuration = 5000;
+  const controller = new AbortController();
+
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutDuration);
+
+  return await fetch(host, {signal: controller.signal})
+    .then(response => {
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw 'Network response was not ok';
+      }
+      return response.json();
+    })
+    .then(({status}) => {
+      if (status === 'ok') {
+        console.log('Server address verified');
+        return host;
+      }
+      throw 'Server status is not ok';
+    })
+    .catch(error => {
+      const reason: string =
+        error.name === 'AbortError'
+          ? `Request timed out in ${timeoutDuration}ms`
+          : error;
+      throw `Cannot check server status. ${reason}`;
+    });
+};
 
 export const submitPhoto = async (albumTitle: string, photo: Photo) => {
+  const host = await getServerAddress();
+
   const body = new FormData();
   body.append('albumTitle', {
     string: albumTitle,
@@ -20,18 +54,28 @@ export const submitPhoto = async (albumTitle: string, photo: Photo) => {
   });
   body.append('image', photo);
 
-  return await fetch(`${HOST}/upload`, {
+  return await fetch(`${host}/upload`, {
     method: 'post',
     headers: {
       'Content-Type': 'multipart/form-data',
     },
     body,
   })
-    .then(response => {
-      console.log(response);
+    .then(({status}) => {
+      switch (status) {
+        case 201:
+          console.log('Photo uploaded successfully');
+          break;
+        case 304:
+          console.log('Photo already uploaded');
+          break;
+        default:
+          console.error(`Unexpected status ${status}`);
+          break;
+      }
     })
-    .catch(err => {
-      console.log(err);
+    .catch(_ => {
+      throw 'Cannot upload photo';
     });
 };
 
@@ -39,10 +83,12 @@ export const arePhotosSync = async (
   albumTitle: string,
   photos: Photo[],
 ): Promise<string[]> => {
+  const host = await getServerAddress();
+
   const hashes = photos.map(photo => photo.hash);
   const body = JSON.stringify({albumTitle, hashes});
 
-  return await fetch(`${HOST}/getSync`, {
+  return await fetch(`${host}/getSync`, {
     method: 'post',
     headers: {
       'Content-Type': 'application/json',
@@ -51,10 +97,10 @@ export const arePhotosSync = async (
   })
     .then(response => response.json())
     .then(res => {
-      console.log('To Sync', res);
+      console.log('Photos that need to be sync', res);
       return res;
     })
-    .catch(err => {
-      console.log(err);
+    .catch(_ => {
+      throw 'Cannot check if photos are in sync';
     });
 };

@@ -5,8 +5,12 @@ import {
 import React, {useCallback, useEffect, useState} from 'react';
 import {Pressable, ScrollView, Text} from 'react-native';
 import {hash as hashAlg} from 'react-native-fs';
-import {hasAndroidPermission} from '../utils';
-import {Photo, arePhotosSync, submitPhoto} from '../utils/api';
+import {
+  Photo,
+  arePhotosSync,
+  hasMediaAccessPermission,
+  submitPhoto,
+} from '../utils';
 import {Section} from './Section';
 
 const transformToPhoto = async (raw: PhotoIdentifier): Promise<Photo> => {
@@ -21,25 +25,25 @@ const transformToPhoto = async (raw: PhotoIdentifier): Promise<Photo> => {
 
 type PhotoViewProps = {
   photo: Photo;
-  photosToSync: Set<string>;
+  photosToSync?: Set<string>;
   albumTitle: string;
-  callback: () => void;
+  onPhotoSubmitted: () => void;
 };
 
 const PhotoView = ({
   photo,
   albumTitle,
   photosToSync,
-  callback,
+  onPhotoSubmitted,
 }: PhotoViewProps) => {
   const style = {marginBottom: 8};
 
-  const notSync = photosToSync.has(photo.hash);
+  const notSync = !photosToSync || photosToSync.has(photo.hash);
   const color = notSync ? 'red' : 'green';
   const textStyle = {color};
 
   const onPress = () => {
-    submitPhoto(albumTitle, photo).then(callback);
+    submitPhoto(albumTitle, photo).then(onPhotoSubmitted).catch(console.error);
   };
 
   return (
@@ -56,16 +60,16 @@ type PhotoListProps = {
 
 export const PhotoList = ({albumTitle}: PhotoListProps) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [photosToSync, setPhotosToSync] = useState<Set<string>>(new Set());
+  const [photosToSync, setPhotosToSync] = useState<Set<string>>();
 
   const checkSyncPhotos = useCallback(() => {
-    arePhotosSync(albumTitle, photos).then(hashes =>
-      setPhotosToSync(new Set(hashes)),
-    );
+    arePhotosSync(albumTitle, photos)
+      .then(hashes => setPhotosToSync(new Set(hashes)))
+      .catch(console.error);
   }, [albumTitle, photos]);
 
   useEffect(() => {
-    hasAndroidPermission()
+    hasMediaAccessPermission()
       .then(() => {
         CameraRoll.getPhotos({
           first: 10,
@@ -75,7 +79,7 @@ export const PhotoList = ({albumTitle}: PhotoListProps) => {
           .then(({edges}) => edges.map(transformToPhoto))
           .then(promises => Promise.all(promises).then(setPhotos));
       })
-      .catch(err => console.log(err));
+      .catch(console.error);
   }, [albumTitle]);
 
   useEffect(() => {
@@ -93,7 +97,7 @@ export const PhotoList = ({albumTitle}: PhotoListProps) => {
             photo={photo}
             albumTitle={albumTitle}
             photosToSync={photosToSync}
-            callback={checkSyncPhotos}
+            onPhotoSubmitted={checkSyncPhotos}
           />
         ))}
       </ScrollView>

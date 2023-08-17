@@ -1,21 +1,18 @@
 import React, {useEffect, useState} from 'react';
 import {Button, TextInput} from 'react-native';
 import {Section} from '../components';
-import {getServerAddress, saveServerAddress} from '../utils/storage';
+import {getServerAddress, saveServerAddress, serverStatus} from '../utils';
 import {BaseScreen} from './BaseScreen';
 
 export const SettingsScreen = () => {
   const [serverAddress, setServerAddress] = useState('');
 
   useEffect(() => {
-    getServerAddress()
-      .then(setServerAddress)
-      .catch(err => console.log(err));
+    getServerAddress().then(setServerAddress).catch(console.error);
   }, []);
 
   const handleVerify = () => {
-    // TODO verify server address
-    saveServerAddress(serverAddress);
+    serverStatus(serverAddress).then(saveServerAddress).catch(console.error);
   };
 
   const inputStyle = {fontSize: 20};
