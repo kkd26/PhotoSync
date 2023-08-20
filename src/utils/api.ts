@@ -16,7 +16,7 @@ export const serverStatus = async (host: string) => {
     controller.abort();
   }, timeoutDuration);
 
-  return await fetch(host, {signal: controller.signal})
+  return await fetch(`${host}/api`, {signal: controller.signal})
     .then(response => {
       clearTimeout(timeoutId);
       if (!response.ok) {
@@ -54,7 +54,7 @@ export const submitPhoto = async (albumTitle: string, photo: Photo) => {
   });
   body.append('image', photo);
 
-  return await fetch(`${host}/upload`, {
+  return await fetch(`${host}/api/upload`, {
     method: 'post',
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -88,7 +88,7 @@ export const arePhotosSync = async (
   const hashes = photos.map(photo => photo.hash);
   const body = JSON.stringify({albumTitle, hashes});
 
-  return await fetch(`${host}/getSync`, {
+  return await fetch(`${host}/api/getSync`, {
     method: 'post',
     headers: {
       'Content-Type': 'application/json',

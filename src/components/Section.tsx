@@ -1,22 +1,21 @@
 import type {PropsWithChildren} from 'react';
 import React from 'react';
-import {getColorAndBackground, styles} from '../styles';
-
-import {Text, useColorScheme, View} from 'react-native';
+import {Text, View} from 'react-native';
+import {styles} from '../styles';
+import {useStyle} from '../utils';
 
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
 
 export function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const {color, backgroundColor} = useStyle();
   return (
     <View style={styles.sectionContainer}>
-      <Text style={[styles.sectionTitle, getColorAndBackground(isDarkMode)]}>
+      <Text style={[styles.sectionTitle, {color, backgroundColor}]}>
         {title}
       </Text>
-      <View
-        style={[styles.sectionDescription, getColorAndBackground(isDarkMode)]}>
+      <View style={[styles.sectionDescription, {backgroundColor}]}>
         {children}
       </View>
     </View>

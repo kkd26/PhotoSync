@@ -1,7 +1,7 @@
 import {Album, CameraRoll} from '@react-native-camera-roll/camera-roll';
 import React, {PropsWithChildren, useEffect, useState} from 'react';
 import {Pressable, ScrollView, Text} from 'react-native';
-import {hasMediaAccessPermission} from '../utils';
+import {hasMediaAccessPermission, useStyle} from '../utils';
 import {Section} from './Section';
 
 type AlbumViewProps = PropsWithChildren<{
@@ -27,6 +27,7 @@ type AlbumListProps = {
 
 export const AlbumList = ({handle}: AlbumListProps) => {
   const [albums, setAlbums] = useState<Album[]>([]);
+  const {color} = useStyle();
 
   useEffect(() => {
     hasMediaAccessPermission()
@@ -38,6 +39,7 @@ export const AlbumList = ({handle}: AlbumListProps) => {
 
   const textStyle = {
     fontSize: 24,
+    color,
   };
 
   return (

@@ -1,5 +1,4 @@
 import {StyleSheet} from 'react-native';
-import {Colors} from 'react-native/Libraries/NewAppScreen';
 
 export const styles = StyleSheet.create({
   sectionContainer: {
@@ -18,11 +17,18 @@ export const styles = StyleSheet.create({
   highlight: {
     fontWeight: '700',
   },
+  button: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 0,
+    elevation: 3,
+  },
+  text: {
+    fontSize: 16,
+    lineHeight: 21,
+    textTransform: 'uppercase',
+    fontWeight: '700',
+  },
 });
-
-export const getColorAndBackground = (isDarkMode: boolean) => {
-  const color = isDarkMode ? Colors.white : Colors.black;
-  const backgroundColor = isDarkMode ? Colors.black : Colors.white;
-
-  return {color, backgroundColor};
-};

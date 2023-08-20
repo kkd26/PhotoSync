@@ -1,18 +1,14 @@
 import React, {PropsWithChildren} from 'react';
-import {SafeAreaView, StatusBar, useColorScheme} from 'react-native';
-import {getColorAndBackground} from '../styles';
+import {SafeAreaView, StatusBar} from 'react-native';
+import {useStyle} from '../utils';
 
 export const BaseScreen = ({children}: PropsWithChildren) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  const colorAndBackground = getColorAndBackground(isDarkMode);
-  const style = {...colorAndBackground, flex: 1};
+  const {color, backgroundColor, barStyle} = useStyle();
+  const style = {color, backgroundColor, flex: 1};
 
   return (
     <SafeAreaView style={style}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={colorAndBackground.backgroundColor}
-      />
+      <StatusBar barStyle={barStyle} backgroundColor={backgroundColor} />
       {children}
     </SafeAreaView>
   );
