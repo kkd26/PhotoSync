@@ -3,14 +3,16 @@ import {
   PhotoIdentifier,
 } from '@react-native-camera-roll/camera-roll';
 import React, {useCallback, useEffect, useState} from 'react';
-import {Pressable, ScrollView, Text} from 'react-native';
+import {Text} from 'react-native';
 import {hash as hashAlg} from 'react-native-fs';
 import {
   Photo,
   arePhotosSync,
+  getPhotos,
   hasMediaAccessPermission,
   submitPhoto,
 } from '../utils';
+import {PhotoScrolled} from './PhotoScrolled';
 import {Section} from './Section';
 
 const transformToPhoto = async (raw: PhotoIdentifier): Promise<Photo> => {
@@ -18,89 +20,99 @@ const transformToPhoto = async (raw: PhotoIdentifier): Promise<Photo> => {
   const nameFromUri = uri.split('/').at(-1) || 'no uri';
   const name = raw.node.image.filename || nameFromUri;
   const type = raw.node.type;
-  const date = new Date(raw.node.timestamp * 1000).toISOString();
+  const date = raw.node.timestamp;
   const hash = await hashAlg(uri, 'sha256');
   return {uri, name, type, date, hash};
-};
-
-type PhotoViewProps = {
-  photo: Photo;
-  photosToSync?: Set<string>;
-  albumTitle: string;
-  onPhotoSubmitted: () => void;
-};
-
-const PhotoView = ({
-  photo,
-  albumTitle,
-  photosToSync,
-  onPhotoSubmitted,
-}: PhotoViewProps) => {
-  const style = {marginBottom: 8};
-
-  const notSync = !photosToSync || photosToSync.has(photo.hash);
-  const color = notSync ? 'red' : 'green';
-  const textStyle = {color};
-
-  const onPress = () => {
-    submitPhoto(albumTitle, photo).then(onPhotoSubmitted).catch(console.error);
-  };
-
-  return (
-    <Pressable style={style} onPress={onPress}>
-      <Text style={textStyle}>{photo.name}</Text>
-      <Text style={textStyle}>{photo.date}</Text>
-    </Pressable>
-  );
 };
 
 type PhotoListProps = {
   albumTitle: string;
 };
 
+type PhotosToSync = {
+  photos: Photo[];
+  count: number;
+};
+
 export const PhotoList = ({albumTitle}: PhotoListProps) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [photosToSync, setPhotosToSync] = useState<Set<string>>();
+  const [syncedHashes, setSyncedHashes] = useState<string[]>([]);
+  const [photosToSync, setPhotosToSync] = useState<PhotosToSync>({
+    photos: [],
+    count: 0,
+  });
+  const [hashesToSync, setHashesToSync] = useState<Set<string>>(new Set());
 
-  const checkSyncPhotos = useCallback(() => {
-    arePhotosSync(albumTitle, photos)
-      .then(hashes => setPhotosToSync(new Set(hashes)))
-      .catch(console.error);
-  }, [albumTitle, photos]);
+  const fetchSyncedHashes = useCallback(() => {
+    getPhotos(albumTitle).then(setSyncedHashes).catch(console.error);
+  }, [albumTitle]);
 
+  // get photos from device
   useEffect(() => {
     hasMediaAccessPermission()
       .then(() => {
         CameraRoll.getPhotos({
-          first: 10,
+          first: 20,
           groupName: albumTitle,
-          assetType: 'All',
+          assetType: 'Photos',
         })
           .then(({edges}) => edges.map(transformToPhoto))
           .then(promises => Promise.all(promises).then(setPhotos));
       })
       .catch(console.error);
-  }, [albumTitle]);
 
+    fetchSyncedHashes();
+  }, [albumTitle, fetchSyncedHashes]);
+
+  // set hashes to sync
   useEffect(() => {
     if (photos.length > 0) {
-      checkSyncPhotos();
+      arePhotosSync(albumTitle, photos)
+        .then(hashes => setHashesToSync(new Set(hashes)))
+        .catch(console.error);
     }
-  }, [checkSyncPhotos, photos.length]);
+  }, [albumTitle, photos]);
+
+  // get photos to sync
+  useEffect(() => {
+    if (hashesToSync.size > 0) {
+      setPhotosToSync({
+        photos: photos.filter(({hash}) => hashesToSync.has(hash)),
+        count: photos.length,
+      });
+    }
+  }, [albumTitle, hashesToSync, photos]);
+
+  // sync photos
+  useEffect(() => {
+    const onPhotoSubmitted = () => {
+      setPhotosToSync(state => {
+        return {
+          photos: state.photos,
+          count: state.count - 1,
+        };
+      });
+      fetchSyncedHashes();
+    };
+
+    const promises = photosToSync.photos.map(photo =>
+      submitPhoto(albumTitle, photo)
+        .then(onPhotoSubmitted)
+        .catch(console.error),
+    );
+
+    promises.length &&
+      Promise.all(promises).then(() => {
+        console.log('Done syncing photos');
+      });
+  }, [albumTitle, photosToSync.photos, fetchSyncedHashes]);
 
   return (
     <Section title={`Photos in ${albumTitle}:`}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
-        {photos.map(photo => (
-          <PhotoView
-            key={photo.hash}
-            photo={photo}
-            albumTitle={albumTitle}
-            photosToSync={photosToSync}
-            onPhotoSubmitted={checkSyncPhotos}
-          />
-        ))}
-      </ScrollView>
+      <Text>
+        Syncing {photosToSync.count} out of {photos.length}
+      </Text>
+      <PhotoScrolled syncedHashes={syncedHashes} albumTitle={albumTitle} />
     </Section>
   );
 };

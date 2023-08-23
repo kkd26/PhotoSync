@@ -4,7 +4,7 @@ export type Photo = {
   uri: string;
   name: string;
   type: string;
-  date: string;
+  date: number;
   hash: string;
 };
 
@@ -50,6 +50,10 @@ export const submitPhoto = async (albumTitle: string, photo: Photo) => {
   });
   body.append('hash', {
     string: photo.hash,
+    type: 'plain/text',
+  });
+  body.append('date', {
+    string: photo.date.toString(),
     type: 'plain/text',
   });
   body.append('image', photo);
@@ -102,5 +106,17 @@ export const arePhotosSync = async (
     })
     .catch(_ => {
       throw 'Cannot check if photos are in sync';
+    });
+};
+
+export const getPhotos = async (albumTitle: string): Promise<string[]> => {
+  const host = await getServerAddress();
+
+  return await fetch(`${host}/api/getPhotos/${albumTitle}`, {
+    method: 'get',
+  })
+    .then(response => response.json())
+    .catch(_ => {
+      throw 'Cannot get photos';
     });
 };

@@ -1,6 +1,7 @@
 import {Album, CameraRoll} from '@react-native-camera-roll/camera-roll';
 import React, {PropsWithChildren, useEffect, useState} from 'react';
 import {Pressable, ScrollView, Text} from 'react-native';
+import {styles} from '../styles';
 import {hasMediaAccessPermission, useStyle} from '../utils';
 import {Section} from './Section';
 
@@ -44,7 +45,9 @@ export const AlbumList = ({handle}: AlbumListProps) => {
 
   return (
     <Section title="Albums:">
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.scrollable}>
         {albums.map(({title, count}, id) => (
           <AlbumView key={id} onPress={() => handle(title)}>
             <Text style={textStyle}>{`${title} ${count}`}</Text>

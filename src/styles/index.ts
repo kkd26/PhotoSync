@@ -2,6 +2,8 @@ import {StyleSheet} from 'react-native';
 
 export const styles = StyleSheet.create({
   sectionContainer: {
+    flex: 1,
+    flexDirection: 'column',
     marginTop: 8,
     paddingHorizontal: 24,
   },
@@ -10,9 +12,14 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sectionDescription: {
+    flex: 1,
+    flexDirection: 'column',
     marginTop: 8,
     fontSize: 18,
     fontWeight: '400',
+  },
+  scrollable: {
+    flexGrow: 1,
   },
   highlight: {
     fontWeight: '700',
@@ -30,5 +37,10 @@ export const styles = StyleSheet.create({
     lineHeight: 21,
     textTransform: 'uppercase',
     fontWeight: '700',
+  },
+  image: {
+    width: '100%',
+    aspectRatio: 1,
+    resizeMode: 'cover',
   },
 });
