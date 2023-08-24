@@ -5,33 +5,36 @@ import {
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
+  View,
 } from 'react-native';
 import {styles} from '../styles';
 import {getServerAddress} from '../utils';
+import {PhotoModal} from './PhotoModal';
 
 type PhotoViewProps = {
   albumTitle: string;
   hash: string;
+  handlePress: () => void;
 };
 
-const PhotoView = ({albumTitle, hash}: PhotoViewProps) => {
+const PhotoView = ({albumTitle, hash, handlePress}: PhotoViewProps) => {
   const [uri, setUri] = useState<string>();
 
-  const displayPicture = useCallback(async () => {
+  const displayThumbnail = useCallback(async () => {
     const host = await getServerAddress();
-    setUri(`${host}/photos/${albumTitle}/${hash}`);
+    setUri(`${host}/photos/.tmb/${albumTitle}/${hash}`);
   }, [albumTitle, hash]);
 
   useEffect(() => {
-    displayPicture();
-  }, [albumTitle, hash, displayPicture]);
+    displayThumbnail();
+  }, [albumTitle, hash, displayThumbnail]);
 
   const style = {
     marginBottom: 8,
   };
 
   return (
-    <Pressable style={style} onPress={() => {}}>
+    <Pressable style={style} onPress={handlePress}>
       {uri && <Image source={{uri}} style={styles.image} />}
     </Pressable>
   );
@@ -46,8 +49,10 @@ export const PhotoScrolled = ({
   albumTitle,
   syncedHashes,
 }: PhotoScrolledProps) => {
-  const pageSize = 2;
+  const pageSize = 3;
+
   const [hashesToDisplay, setHashesToDisplay] = useState<string[]>([]);
+  const [hashInModal, setHashInModal] = useState<string>();
 
   useEffect(() => {
     console.debug('Set new size to', pageSize);
@@ -79,13 +84,25 @@ export const PhotoScrolled = ({
   };
 
   return (
-    <ScrollView
-      onScroll={handleScroll}
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.scrollable}>
-      {hashesToDisplay.map(hash => (
-        <PhotoView key={hash} hash={hash} albumTitle={albumTitle} />
-      ))}
-    </ScrollView>
+    <View>
+      <PhotoModal
+        albumTitle={albumTitle}
+        hash={hashInModal}
+        closeCallback={() => setHashInModal(undefined)}
+      />
+      <ScrollView
+        onScroll={handleScroll}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.scrollable}>
+        {hashesToDisplay.map(hash => (
+          <PhotoView
+            key={hash}
+            hash={hash}
+            albumTitle={albumTitle}
+            handlePress={() => setHashInModal(hash)}
+          />
+        ))}
+      </ScrollView>
+    </View>
   );
 };
