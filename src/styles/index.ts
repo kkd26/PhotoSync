@@ -43,9 +43,12 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '700',
   },
-  image: {
+  thumbnailImage: {
     width: '100%',
     aspectRatio: 1,
     resizeMode: 'cover',
+  },
+  image: {
+    resizeMode: 'contain',
   },
 });

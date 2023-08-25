@@ -1,7 +1,63 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {Image, Modal, Pressable} from 'react-native';
+import {
+  Dimensions,
+  Image,
+  ImageURISource,
+  Modal,
+  Pressable,
+} from 'react-native';
 import {styles} from '../styles';
 import {getServerAddress} from '../utils';
+
+type ImageWithAspectRatioProps = {
+  source: ImageURISource;
+};
+
+const ImageWithAspectRatio = ({source}: ImageWithAspectRatioProps) => {
+  const [imageDimensions, setImageDimensions] = useState({width: 0, height: 0});
+
+  const calculateAspectRatio = () => {
+    const {width, height} = imageDimensions;
+    if (width > 0 && height > 0) {
+      const imageAspectRatio = width / height;
+      return imageAspectRatio;
+    }
+    return 1;
+  };
+
+  const getImageDimensions = () => {
+    const imageAspectRatio = calculateAspectRatio();
+    const {width, height} = Dimensions.get('window');
+
+    if (width < height) {
+      const imageWidth = width;
+      const imageHeight = imageWidth / imageAspectRatio;
+      return {imageWidth, imageHeight};
+    } else {
+      const imageHeight = height;
+      const imageWidth = imageHeight * imageAspectRatio;
+      return {imageWidth, imageHeight};
+    }
+  };
+
+  useEffect(() => {
+    const {uri} = source;
+
+    uri &&
+      Image.getSize(uri, (width, height) => {
+        setImageDimensions({width, height});
+      });
+  }, [source]);
+
+  const {imageWidth, imageHeight} = getImageDimensions();
+
+  return (
+    <Image
+      source={source}
+      style={[styles.image, {width: imageWidth, height: imageHeight}]}
+    />
+  );
+};
 
 type PhotoModalProps = {
   albumTitle: string;
@@ -56,7 +112,7 @@ export const PhotoModal = ({
       <Pressable style={[styles.centeredView, style]} onPress={closeModal}>
         {uri && (
           <Pressable onPress={e => e.stopPropagation()}>
-            <Image source={{uri}} style={styles.image} />
+            <ImageWithAspectRatio source={{uri}} />
           </Pressable>
         )}
       </Pressable>

@@ -1,23 +1,33 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {
+  FlatList,
   Image,
+  LayoutChangeEvent,
+  ListRenderItem,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
-  ScrollView,
   View,
 } from 'react-native';
 import {styles} from '../styles';
 import {getServerAddress} from '../utils';
 import {PhotoModal} from './PhotoModal';
 
+const numColumns = 4;
+
 type PhotoViewProps = {
   albumTitle: string;
   hash: string;
   handlePress: () => void;
+  parentWidth: number;
 };
 
-const PhotoView = ({albumTitle, hash, handlePress}: PhotoViewProps) => {
+const PhotoView = ({
+  albumTitle,
+  hash,
+  handlePress,
+  parentWidth,
+}: PhotoViewProps) => {
   const [uri, setUri] = useState<string>();
 
   const displayThumbnail = useCallback(async () => {
@@ -33,9 +43,11 @@ const PhotoView = ({albumTitle, hash, handlePress}: PhotoViewProps) => {
     marginBottom: 8,
   };
 
+  const width = parentWidth / numColumns;
+
   return (
     <Pressable style={style} onPress={handlePress}>
-      {uri && <Image source={{uri}} style={styles.image} />}
+      {uri && <Image source={{uri}} style={[styles.thumbnailImage, {width}]} />}
     </Pressable>
   );
 };
@@ -45,14 +57,15 @@ type PhotoScrolledProps = {
   syncedHashes: string[];
 };
 
-export const PhotoScrolled = ({
+export const PhotoGallery = ({
   albumTitle,
   syncedHashes,
 }: PhotoScrolledProps) => {
-  const pageSize = 3;
+  const [hashInModal, setHashInModal] = useState<string>();
+  const [elementWidth, setElementWidth] = useState(0);
+  const pageSize = 30;
 
   const [hashesToDisplay, setHashesToDisplay] = useState<string[]>([]);
-  const [hashInModal, setHashInModal] = useState<string>();
 
   useEffect(() => {
     console.debug('Set new size to', pageSize);
@@ -83,26 +96,37 @@ export const PhotoScrolled = ({
     }
   };
 
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const {width} = event.nativeEvent.layout;
+    setElementWidth(width);
+  };
+
+  const renderItem: ListRenderItem<string> = ({item}) => {
+    const hash = item;
+    return (
+      <PhotoView
+        key={hash}
+        hash={hash}
+        albumTitle={albumTitle}
+        handlePress={() => setHashInModal(hash)}
+        parentWidth={elementWidth}
+      />
+    );
+  };
+
   return (
-    <View>
+    <View onLayout={handleLayout}>
       <PhotoModal
         albumTitle={albumTitle}
         hash={hashInModal}
         closeCallback={() => setHashInModal(undefined)}
       />
-      <ScrollView
+      <FlatList
+        data={hashesToDisplay}
+        renderItem={renderItem}
+        numColumns={numColumns}
         onScroll={handleScroll}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.scrollable}>
-        {hashesToDisplay.map(hash => (
-          <PhotoView
-            key={hash}
-            hash={hash}
-            albumTitle={albumTitle}
-            handlePress={() => setHashInModal(hash)}
-          />
-        ))}
-      </ScrollView>
+      />
     </View>
   );
 };

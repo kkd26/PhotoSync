@@ -1,3 +1,3 @@
-export * from './Section';
 export * from './AlbumList';
-export * from './PhotoList';
+export * from './PhotoDisplay';
+export * from './Section';
