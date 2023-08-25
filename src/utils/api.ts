@@ -40,7 +40,10 @@ export const serverStatus = async (host: string) => {
     });
 };
 
-export const submitPhoto = async (albumTitle: string, photo: Photo) => {
+export const uploadPhoto = async (
+  albumTitle: string,
+  photo: Photo,
+): Promise<string[]> => {
   const host = await getServerAddress();
 
   const body = new FormData();
@@ -65,11 +68,13 @@ export const submitPhoto = async (albumTitle: string, photo: Photo) => {
     },
     body,
   })
-    .then(({status}) => {
+    .then(response => {
+      const {status} = response;
+
       switch (status) {
         case 201:
           console.log('Photo uploaded successfully');
-          break;
+          return response.json();
         case 304:
           console.log('Photo already uploaded');
           break;
@@ -77,13 +82,15 @@ export const submitPhoto = async (albumTitle: string, photo: Photo) => {
           console.error(`Unexpected status ${status}`);
           break;
       }
+
+      return null;
     })
     .catch(_ => {
       throw 'Cannot upload photo';
     });
 };
 
-export const arePhotosSync = async (
+export const checkHashes = async (
   albumTitle: string,
   photos: Photo[],
 ): Promise<string[]> => {
@@ -92,7 +99,7 @@ export const arePhotosSync = async (
   const hashes = photos.map(photo => photo.hash);
   const body = JSON.stringify({albumTitle, hashes});
 
-  return await fetch(`${host}/api/getSync`, {
+  return await fetch(`${host}/api/checkHashes`, {
     method: 'post',
     headers: {
       'Content-Type': 'application/json',
@@ -109,10 +116,12 @@ export const arePhotosSync = async (
     });
 };
 
-export const getPhotos = async (albumTitle: string): Promise<string[]> => {
+export const getSyncedHashes = async (
+  albumTitle: string,
+): Promise<string[]> => {
   const host = await getServerAddress();
 
-  return await fetch(`${host}/api/getPhotos/${albumTitle}`, {
+  return await fetch(`${host}/api/getSyncedHashes/${albumTitle}`, {
     method: 'get',
   })
     .then(response => response.json())

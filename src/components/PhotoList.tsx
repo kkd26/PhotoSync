@@ -7,10 +7,10 @@ import {Text} from 'react-native';
 import {hash as hashAlg} from 'react-native-fs';
 import {
   Photo,
-  arePhotosSync,
-  getPhotos,
+  checkHashes,
+  getSyncedHashes,
   hasMediaAccessPermission,
-  submitPhoto,
+  uploadPhoto,
 } from '../utils';
 import {PhotoScrolled} from './PhotoScrolled';
 import {Section} from './Section';
@@ -44,7 +44,7 @@ export const PhotoList = ({albumTitle}: PhotoListProps) => {
   const [hashesToSync, setHashesToSync] = useState<Set<string>>(new Set());
 
   const fetchSyncedHashes = useCallback(() => {
-    getPhotos(albumTitle).then(setSyncedHashes).catch(console.error);
+    getSyncedHashes(albumTitle).then(setSyncedHashes).catch(console.error);
   }, [albumTitle]);
 
   // get photos from device
@@ -67,36 +67,39 @@ export const PhotoList = ({albumTitle}: PhotoListProps) => {
   // set hashes to sync
   useEffect(() => {
     if (photos.length > 0) {
-      arePhotosSync(albumTitle, photos)
+      checkHashes(albumTitle, photos)
         .then(hashes => setHashesToSync(new Set(hashes)))
         .catch(console.error);
     }
   }, [albumTitle, photos]);
 
-  // get photos to sync
+  // get photos to sync and count
   useEffect(() => {
     if (hashesToSync.size > 0) {
       setPhotosToSync({
         photos: photos.filter(({hash}) => hashesToSync.has(hash)),
-        count: photos.length,
+        count: hashesToSync.size,
       });
     }
   }, [albumTitle, hashesToSync, photos]);
 
   // sync photos
   useEffect(() => {
-    const onPhotoSubmitted = () => {
+    const onPhotoSubmitted = (hashes: string[]) => {
+      if (hashes) {
+        setSyncedHashes(hashes);
+      }
+
       setPhotosToSync(state => {
         return {
           photos: state.photos,
           count: state.count - 1,
         };
       });
-      fetchSyncedHashes();
     };
 
     const promises = photosToSync.photos.map(photo =>
-      submitPhoto(albumTitle, photo)
+      uploadPhoto(albumTitle, photo)
         .then(onPhotoSubmitted)
         .catch(console.error),
     );
@@ -105,13 +108,15 @@ export const PhotoList = ({albumTitle}: PhotoListProps) => {
       Promise.all(promises).then(() => {
         console.log('Done syncing photos');
       });
-  }, [albumTitle, photosToSync.photos, fetchSyncedHashes]);
+  }, [albumTitle, photosToSync.photos]);
 
   return (
     <Section title={`Photos in ${albumTitle}:`}>
-      <Text>
-        Syncing {photosToSync.count} out of {photos.length}
-      </Text>
+      {photosToSync.count !== 0 && (
+        <Text>
+          Syncing {photosToSync.count} out of {photos.length}
+        </Text>
+      )}
       <PhotoScrolled syncedHashes={syncedHashes} albumTitle={albumTitle} />
     </Section>
   );
